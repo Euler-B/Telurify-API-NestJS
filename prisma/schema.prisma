@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Sismo {
+  id         BigInt   @id @default(autoincrement())
+  title      String?  @db.VarChar
+  url        String?  @db.VarChar
+  place      String?  @db.VarChar
+  magType    String?  @map("magType") @db.VarChar
+  mag        Float?
+  latitude   Float?
+  longitude  Float?
+  createdAt  DateTime @map("created_at") @db.Timestamp(6)
+  updatedAt  DateTime @map("updated_at") @db.Timestamp(6)
+  tsunami    Boolean?
+  externalId String?  @map("external_id") @db.VarChar
+  reports    Report[]
+
+  @@index([createdAt], map: "index_sismos_on_created_at")
+  @@index([mag], map: "index_sismos_on_mag")
+  @@index([magType], map: "index_sismos_on_magType")
+  @@map("sismos")
+}
+
+model Report {
+  id        BigInt   @id @default(autoincrement())
+  sismoId   BigInt   @map("sismo_id")
+  felt      Boolean
+  intensity String   @db.VarChar
+  createdAt DateTime @map("created_at") @db.Timestamp(6)
+  updatedAt DateTime @map("updated_at") @db.Timestamp(6)
+  sismo     Sismo    @relation(fields: [sismoId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_rails_722d92a3b8")
+
+  @@index([sismoId], map: "index_reports_on_sismo_id")
+  @@map("reports")
+}
+
+model Device {
+  id        BigInt   @id @default(autoincrement())
+  fcmToken  String   @unique(map: "index_devices_on_fcm_token") @map("fcm_token") @db.VarChar(255)
+  platform  String   @default("web") @db.VarChar
+  createdAt DateTime @map("created_at") @db.Timestamp(6)
+  updatedAt DateTime @map("updated_at") @db.Timestamp(6)
+
+  @@map("devices")
+}
+
+model ar_internal_metadata {
+  key        String   @id @db.VarChar
+  value      String?  @db.VarChar
+  created_at DateTime @db.Timestamp(6)
+  updated_at DateTime @db.Timestamp(6)
+}
+
+model schema_migrations {
+  version String @id @db.VarChar
+}
