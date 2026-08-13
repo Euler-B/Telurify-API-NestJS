@@ -1,5 +1,6 @@
 # Telurify API Nest
 
+[![CI](https://github.com/Euler-B/Telurify-API-Nest/actions/workflows/ci.yml/badge.svg)](https://github.com/Euler-B/Telurify-API-Nest/actions/workflows/ci.yml)
 [![NestJS](https://img.shields.io/badge/NestJS-E0234E?logo=nestjs&logoColor=white)](https://nestjs.com/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9.2-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Prisma](https://img.shields.io/badge/Prisma-6.19.3-2D3748?logo=prisma&logoColor=white)](https://www.prisma.io/)
@@ -333,6 +334,34 @@ Docker images can be built with:
 docker build -f Dockerfile.dev -t telurify-api-nest:development .
 docker build -f Dockerfile -t telurify-api-nest:production .
 ```
+
+## Continuous Integration and Releases
+
+The CI workflow runs on pushes and pull requests targeting `main`. It performs:
+
+- Dependency installation with `npm ci`.
+- Prisma Client generation.
+- Prisma schema validation.
+- Type-checking.
+- Application build.
+- Production Docker image build.
+
+Releases are triggered by SemVer tags:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+The release workflow validates the project, publishes the production image to GitHub Container Registry, and creates a GitHub Release with generated notes.
+
+Published image format:
+
+```text
+ghcr.io/<owner>/telurify-api-nest:<version>
+```
+
+Stable releases also receive the `latest` tag. Pre-release tags such as `v0.1.0-beta.1` do not update `latest`.
 
 ## License
 
