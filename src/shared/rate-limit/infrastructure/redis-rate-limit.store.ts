@@ -12,14 +12,26 @@ end
 return count
 `;
 
+export const CONNECT_TIMEOUT_MS = 2000;
+export const MAX_RECONNECT_RETRIES = 2;
+export const UNAVAILABLE_COOLDOWN_MS = 10_000;
+
 export class RedisRateLimitStore extends RateLimitStore {
   private readonly logger = new Logger(RedisRateLimitStore.name);
   private readonly client: RedisClientType;
   private connection?: Promise<unknown>;
+  private unavailableUntil = 0;
 
   constructor(url: string) {
     super();
-    this.client = createClient({ url });
+    this.client = createClient({
+      url,
+      socket: {
+        connectTimeout: CONNECT_TIMEOUT_MS,
+        reconnectStrategy: (retries) =>
+          retries >= MAX_RECONNECT_RETRIES ? new Error('Redis rate limit store unreachable') : Math.min(retries * 100, 1000),
+      },
+    });
     this.client.on('error', (error) => this.logger.warn(`Redis rate limit error: ${error.message}`));
   }
 
@@ -34,10 +46,19 @@ export class RedisRateLimitStore extends RateLimitStore {
 
   private connect(): Promise<unknown> {
     if (this.client.isReady) return Promise.resolve();
-    this.connection ??= this.client.connect().catch((error) => {
-      this.connection = undefined;
-      throw error;
-    });
+    if (Date.now() < this.unavailableUntil) {
+      return Promise.reject(new Error('Redis rate limit store temporarily unavailable'));
+    }
+    this.connection ??= this.client
+      .connect()
+      .then(() => {
+        this.unavailableUntil = 0;
+      })
+      .catch((error) => {
+        this.connection = undefined;
+        this.unavailableUntil = Date.now() + UNAVAILABLE_COOLDOWN_MS;
+        throw error;
+      });
     return this.connection;
   }
 }
