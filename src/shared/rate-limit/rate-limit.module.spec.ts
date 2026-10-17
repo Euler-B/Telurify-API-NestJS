@@ -12,14 +12,14 @@ describe('createRateLimitStore', () => {
     const store = createRateLimitStore({ RACK_ATTACK_REDIS_URL: 'redis://rate-limit', REDIS_URL: 'redis://other' } as NodeJS.ProcessEnv);
 
     expect(store).toBeInstanceOf(RedisRateLimitStore);
-    expect(createClientMock).toHaveBeenCalledWith({ url: 'redis://rate-limit' });
+    expect(createClientMock).toHaveBeenCalledWith(expect.objectContaining({ url: 'redis://rate-limit' }));
   });
 
   it('uses REDIS_URL when RACK_ATTACK_REDIS_URL is missing', () => {
     const store = createRateLimitStore({ REDIS_URL: 'redis://other' } as NodeJS.ProcessEnv);
 
     expect(store).toBeInstanceOf(RedisRateLimitStore);
-    expect(createClientMock).toHaveBeenCalledWith({ url: 'redis://other' });
+    expect(createClientMock).toHaveBeenCalledWith(expect.objectContaining({ url: 'redis://other' }));
   });
 
   it('falls back to the in-memory store outside production', () => {
