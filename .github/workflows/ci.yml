@@ -19,6 +19,9 @@ jobs:
     name: Typecheck and build
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      # Prisma only requires a valid URL for generate/validate; these commands do not connect to the database.
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
 
     steps:
       - name: Checkout code
