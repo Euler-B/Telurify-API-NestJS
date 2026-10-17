@@ -34,11 +34,12 @@ The following modules are currently implemented:
 - Reports.
 - Devices.
 - Administrative authentication through `X-Admin-Token`.
+- Distributed rate limiting compatible with the Rails `Rack::Attack` rules.
 - PostgreSQL persistence through Prisma.
 - Docker development and production images.
 - CORS configuration.
 
-Distributed Redis-backed rate limiting and automated contract tests are part of the next compatibility phase with Rails.
+Automated contract tests are part of the next compatibility phase with Rails.
 
 ## Architecture
 
@@ -104,7 +105,7 @@ docker-compose.yml
 - Docker and Docker Compose.
 - Node.js 24 only when running commands outside Docker.
 - A local PostgreSQL instance or a Neon connection.
-- Redis when distributed rate limiting is enabled.
+- Redis in production, or to share rate-limit counters between both APIs.
 
 ## Configuration
 
@@ -126,8 +127,8 @@ Main variables:
 | `USER_DB` | PostgreSQL username. |
 | `PASSWORD_DB` | PostgreSQL password. |
 | `ADMIN_TOKEN` | Token required to list and delete devices. |
-| `REDIS_URL` | Redis connection URL. |
-| `RACK_ATTACK_REDIS_URL` | Dedicated rate-limiting Redis URL. |
+| `REDIS_URL` | Redis connection URL used by rate limiting. |
+| `RACK_ATTACK_REDIS_URL` | Dedicated rate-limiting Redis URL. Takes precedence over `REDIS_URL`. |
 | `ALLOWED_ORIGIN` | Allowed CORS origin. |
 
 `DATABASE_URL` takes precedence for Prisma. The `POSTGRES_*` variables are retained to keep the configuration names compatible with the Rails environment.
@@ -301,6 +302,33 @@ Administrative operations require:
 ```http
 X-Admin-Token: <ADMIN_TOKEN>
 ```
+
+## Rate Limiting
+
+Requests are protected by a distributed rate limiter that replicates the Rails `Rack::Attack` rules:
+
+| Rule | Limit | Scope |
+|---|---|---|
+| Global | 60 requests/minute | Per IP, all endpoints except `/assets` |
+| Reports | 5 requests/minute | Per IP, `POST /v1/sismos/:id/reports` only |
+| Devices | 5 requests/minute | Per IP, `POST /v1/devices` only |
+
+Exceeding a limit returns `429 Too Many Requests` with a `Retry-After` header and a JSON error body:
+
+```json
+{ "error": "Rate limit exceeded. Try again in 42 seconds." }
+```
+
+Fixed time windows and counters use the same Redis key format as Rails (`rack_attack:rack::attack:<window>:<rule>:<ip>`), so both APIs share limits when connected to the same Redis instance.
+
+Configuration:
+
+| Variable | Description |
+|---|---|
+| `RACK_ATTACK_REDIS_URL` | Takes precedence when set. |
+| `REDIS_URL` | Used when `RACK_ATTACK_REDIS_URL` is not set. |
+
+In production, one of the two variables is required and the application raises on boot if neither is set. In development, the limiter falls back to an in-memory store, so no local Redis is needed.
 
 ## Rails Compatibility
 
