@@ -3,9 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "description": "NestJS API for Telurify",
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
     "build": "nest build",
     "start": "node dist/main.js",
+    "postinstall": "prisma generate",
     "start:dev": "nest start --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "prisma:generate": "prisma generate",

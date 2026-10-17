@@ -1,12 +1,14 @@
 node_modules/
 dist/
-.env
-.env.*
-!.env.example
 coverage/
 .npm/
 *.log
 .DS_Store
+.vercel
+
+# Env files
+.env*
+!.env.example
 
 # Prisma local artifacts
 prisma/*.db

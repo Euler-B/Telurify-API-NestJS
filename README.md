@@ -391,6 +391,32 @@ ghcr.io/<owner>/telurify-api-nest:<version>
 
 Stable releases also receive the `latest` tag. Pre-release tags such as `v0.1.0-beta.1` do not update `latest`.
 
+## Vercel Deployment
+
+Vercel ships zero-configuration support for NestJS: it detects `src/main.ts` and deploys the entire application as a single Vercel Function on Fluid compute. There is no extra entry point, `api/` directory, or request rewriting to maintain — the standard Nest bootstrap is all Vercel needs.
+
+Configure these environment variables in the Vercel project (names as read by the code):
+
+| Variable | Required | Notes |
+|---|---|---|
+| `DATABASE_URL` | Yes | Use the pooled Neon connection URL. |
+| `RACK_ATTACK_REDIS_URL` | Yes* | Takes precedence over `REDIS_URL`. |
+| `REDIS_URL` | Yes* | Required when `RACK_ATTACK_REDIS_URL` is not set. |
+| `ADMIN_TOKEN` | For admin endpoints | Protects `GET` and `DELETE /v1/devices`. |
+| `ALLOWED_ORIGIN` | Recommended | Comma-separated CORS origins. Defaults to allow all. |
+
+*One of the two Redis variables is mandatory in production; the application raises on boot if neither is set. Use an Upstash `rediss://` URL, because the in-memory fallback does not work across serverless instances.
+
+Notes:
+
+- Keep the project's Framework Preset as `NestJS` (Project Settings → Build and Development) with no custom Build Command or Output Directory. This also prevents Vercel from treating the repository as a container because of the `Dockerfile`, which remains exclusive to Docker/Compose and GHCR deployments.
+- Prisma Client is generated automatically: the `postinstall` script runs `prisma generate` on every install, on Vercel and locally.
+- Vercel sets `NODE_ENV=production` automatically; `PORT` is managed by Vercel.
+- The `VERCEL` environment variable enables `trust proxy` so rate limiting sees the real client IP. Vercel overwrites `X-Forwarded-For` to prevent spoofing.
+- Import the repository in Vercel or run `npx vercel --prod`.
+- Do not use `npx vercel dev` with this app: its dev runtime transpiles TypeScript with tsx/esbuild, which does not emit `design:paramtypes` metadata, so Nest dependency injection resolves every constructor as empty and requests fail with `Cannot read properties of undefined`. Keep using `docker compose up`, `npm run start:dev`, or `node dist/main.js` for local development.
+- To validate the exact production artifact locally: `npx vercel build --prod` and then `node .vercel/output/functions/index.func/src/main.js` with the production environment variables.
+
 ## License
 
 This project is distributed under the MIT License. See [`LICENSE`](LICENSE).
