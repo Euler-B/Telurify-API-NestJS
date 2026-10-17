@@ -1,0 +1,4 @@
+# Vercel runs this repository as a zero-config NestJS app. The Dockerfile is
+# only used by Docker/Compose and GHCR, so it is excluded from Vercel builds
+# and from the local `vercel dev` container detection.
+Dockerfile

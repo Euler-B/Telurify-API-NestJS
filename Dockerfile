@@ -1,8 +1,8 @@
 FROM node:24-alpine AS dependencies
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
 COPY prisma ./prisma
+RUN npm ci
 RUN npx prisma generate
 
 FROM node:24-alpine AS build
